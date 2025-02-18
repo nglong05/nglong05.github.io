@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTF Write-ups</title>
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+/* Header */
+#header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 80px;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.6) 250px, rgba(0, 0, 0, 0.6));
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 10px 20px;
+    z-index: 1;
+    transition: transform 0.4s ease-in-out; /* Smooth rolling effect */
+}
+
+.hidden-header {
+    transform: translateY(-100%); /* Moves header up smoothly */
+}
+
+
+        /* Left section: Avatar / Logo */
+          #header-left {
+              flex: 1;
+          }
+
+
+          #avatar-container {
+    display: flex;
+    justify-content: left; /* Aligns avatar to the left */
+    margin-bottom: 15px;
+}
+
+#avatar {
+    height: 100px;
+    width: 100px;
+    border-radius: 50%;
+    /* border: 3px solid white; */
+    margin-left: 40px; /* Ensures avatar is not too close to the edge */
+}
+          /* Right section: Social Links */
+          #header-right {
+              flex: 5;
+              display: flex;
+              justify-content: flex-end;
+              padding: 60px;
+              gap: 20px;
+          }
+          #header-right a {
+              color: white;
+              text-decoration: none;
+              font-weight: bold;
+              padding: 5px 10px;
+              border-radius: 8px;
+              background: rgba(0, 0, 0, 0.5);
+          }
+          #header-right a:hover {
+              background: rgba(255, 255, 255, 0.3);
+          }
+
+
+
+/* Adjust Content Position */
+#content {
+    flex-grow: 1;
+    padding: 20px;
+    margin-left: 270px; /* Prevent overlap with sidebar */
+    margin-top: 100px; /* Push content down to prevent header overlap */
+    overflow-y: auto;
+}
+
+
+        body {
+            font-family: 'Helvetica Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+            background-color: #1f2028;
+            color: #bfc3d9;
+            margin: 0;
+            display: flex;
+            overflow-x: hidden;
+        }
+        #sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 100vh;
+    background: linear-gradient(to bottom, rgba(39, 41, 53, 0.9), rgba(39, 41, 53, 1));
+    padding: 20px;
+    text-align: left; /* Aligns text to the left */
+    overflow-y: auto;
+    z-index: 2; /* Sidebar stays above header */
+}
+
+
+
+#file-list a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+        #content {
+            flex-grow: 1;
+            padding: 20px;
+            margin-left: 270px; /* Prevent content from overlapping the sidebar */
+            overflow-y: auto;
+        }
+        h2, h3 {
+            color: white;
+        }
+        a {
+            display: block;
+            color: #7cbbff;
+            text-decoration: none;
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        a:hover {
+            background-color: #3e55e1;
+        }
+        pre {
+            background-color: #1a1b21;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap; /* Ensures long lines wrap */
+        }
+        code {
+            color: #81edff;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+  <body>
+    <!-- Header with Social Links Only -->
+    <div id="header">
+        <div id="header-right">
+            <a href="https://facebook.com/yourprofile" target="_blank">Facebook</a>
+            <a href="https://github.com/nglong05" target="_blank">GitHub</a>
+            <a href="mailto:your.email@example.com">Email</a>
+        </div>
+    </div>
+
+    <!-- Sidebar Navigation with Avatar -->
+    <div id="sidebar">
+        <div id="avatar-container">
+            <img id="avatar" src="chilmiku.jpg" alt="Your Avatar">
+        </div>
+        <h2>CTF Write-ups</h2>
+        <div id="file-list">Loading...</div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div id="content">
+        <h1 id="page-title">Select a challenge</h1>
+        <div id="file-content">Hê lô xin chào mọi người.</div>
+    </div>
+</body>
+
+
+    <script>
+        const repoOwner = "nglong05"; // GitHub Username
+        const repoName = "PortSwigger"; // Repository Name
+        const branch = "main"; // Branch Name
+        const token = "none"
+        const baseUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/`;
+
+        //https://api.github.com/repos/nglong05/CTF/contents/
+
+        async function fetchFiles(path = "") {
+            try {
+                const response = await fetch(baseUrl + path, {
+                    headers: {
+                        "Authorization": `token ${token}`
+                    }
+                });
+                if (!response.ok) throw new Error("Failed to fetch content");
+                return await response.json();
+            } catch (error) {
+                console.error("Error loading files:", error);
+                return [];
+            }
+        }
+
+        async function loadSidebar() {
+    const fileList = document.getElementById("file-list");
+    fileList.innerHTML = "";
+    await loadDirectory("", fileList);
+}
+
+async function loadDirectory(path, parentElement) {
+    const items = await fetchFiles(path);
+    
+    for (const item of items) {
+        if (item.type === "dir") {
+            // Create a folder element
+            const folderDiv = document.createElement("div");
+            folderDiv.innerHTML = `📂 ${item.name}`;
+            folderDiv.style.cursor = "pointer";
+            folderDiv.style.margin = "5px 0";
+            folderDiv.style.padding = "5px";
+            folderDiv.style.borderRadius = "5px";
+            folderDiv.style.color = "#f39c12"; // Folder color
+            folderDiv.onclick = async () => {
+                if (nestedContainer.style.display === "none") {
+                    // Fetch and display inner files when folder is clicked
+                    nestedContainer.style.display = "block";
+                    if (!nestedContainer.hasChildNodes()) {
+                        await loadDirectory(item.path, nestedContainer);
+                    }
+                } else {
+                    nestedContainer.style.display = "none";
+                }
+            };
+
+            // Create a hidden container for inner files
+            const nestedContainer = document.createElement("div");
+            nestedContainer.style.marginLeft = "15px";
+            nestedContainer.style.display = "none"; // Initially hidden
+
+            // Append elements
+            parentElement.appendChild(folderDiv);
+            parentElement.appendChild(nestedContainer);
+        } else if (item.type === "file") {
+            // Create a file link
+            const link = document.createElement("a");
+            link.href = "#";
+            link.textContent = `📄 ${item.name}`;
+            link.style.display = "block";
+            link.style.marginLeft = "25px";
+            link.style.color = "#7cbbff";
+            link.onclick = () => loadFile(item.download_url, item.name);
+            parentElement.appendChild(link);
+        }
+    }
+}
+
+async function loadFile(url, fileName) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Failed to fetch file");
+        const fileContent = await response.text();
+        
+        document.getElementById("page-title").textContent = fileName;
+        if (fileName.endsWith(".md")) {
+            document.getElementById("file-content").innerHTML = marked.parse(fileContent);
+        } else {
+            document.getElementById("file-content").innerHTML = `<pre><code>${escapeHTML(fileContent)}</code></pre>`;
+        }
+    } catch (error) {
+        document.getElementById("file-content").innerHTML = `<p style="color: red;">Error loading file: ${error.message}</p>`;
+    }
+}
+
+        function escapeHTML(text) {
+            return text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Load sidebar navigation
+        loadSidebar();
+    </script>
+
+</body>
+<script>
+  let lastScrollY = window.scrollY;
+  const header = document.getElementById("header");
+
+  window.addEventListener("scroll", () => {
+      if (window.scrollY > lastScrollY) {
+          // Scrolling down - hide header
+          header.classList.add("hidden-header");
+      } else {
+          // Scrolling up - show header
+          header.classList.remove("hidden-header");
+      }
+      lastScrollY = window.scrollY;
+  });
+</script>
+
+</html>
