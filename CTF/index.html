@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTF Write-ups</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Sidebar */
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 220px;
+            height: 100vh;
+            background: linear-gradient(to bottom, rgba(39, 41, 53, 0.9), rgba(39, 41, 53, 1));
+            padding: 20px;
+            text-align: left;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        /* Avatar */
+        #avatar-container {
+            display: flex;
+            justify-content: left;
+            margin-bottom: 15px;
+        }
+        #avatar {
+            height: 100px;
+            width: 100px;
+            border-radius: 50%;
+            margin-left: 30px;
+            border: 2px solid #bfc3d9;
+        }
+
+        /* Sidebar Links */
+        #file-list a {
+            display: block;
+            color: #bfc3d9;
+            text-decoration: none;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        #file-list a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        #title-leftbar {
+            color: #bfc3d9;
+            margin: 0;
+            padding-top: 5px;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            margin-left: 30px;
+        }
+        /* Folder Styling */
+        .folder {
+            cursor: pointer;
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 5px;
+            color: #bfc3d9;
+        }
+        .folder:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Main Content */
+        /* Adjust Markdown Content Width */
+        #content {
+            flex-grow: 1;
+            padding: 20px;
+            margin-left: 300px; /* Prevents overlap with sidebar */
+            margin-top: 30px; /* Prevents overlap with header */
+            overflow-y: auto;
+            display: flex;
+            justify-content: center; /* Centers the content */
+        }
+        /* Markdown Content Box */
+        #markdown-container {
+            max-width: 800px; /* Keeps content in a readable width */
+            width: 100%;
+            padding: 20px;
+        }
+        /* Fix image overflow */
+        #markdown-container img {
+            max-width: 100%;  /* Prevents images from overflowing */
+            height: auto;      /* Keeps aspect ratio */
+            display: block;    /* Ensures images don’t affect text layout */
+            margin: 10px auto; /* Centers images */
+            border-radius: 5px; /* Optional: Rounds corners slightly */
+        }
+        body {
+            font-family: 'Helvetica Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+            background-color: #1f2028;
+            color: #bfc3d9;
+            margin: 0;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        pre {
+            background-color: #1a1b21;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        code {
+            color: #06a5b2;
+            font-family: monospace;
+        }
+
+
+        #header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            z-index: 1; 
+        }
+
+        #header-right {
+            display: flex;
+            margin: 1300px;
+            gap: 20px; /* Adds spacing between links */
+        }
+
+        /* Style for header links */
+        #header a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        #header a:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        
+    </style>
+</head>
+<body>
+
+    <!-- <div id="header">
+        <div id="header-left">
+            <h2 style="color: white; margin: 0;"></h2>
+        </div>
+        <div id="header-right">
+            <a href="https://facebook.com/nguyenIong05" target="_blank" title="Facebook">
+                <i class="fab fa-facebook"></i>
+            </a>
+            <a href="https://github.com/nglong05" target="_blank" title="GitHub">
+                <i class="fab fa-github"></i>
+            </a>
+            <a href="mailto:long82510@gmail.com?subject=CTF%20Write-ups%20Inquiry" title="Email">
+                <i class="fas fa-envelope"></i>
+            </a>
+        </div>
+    </div> -->
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div id="avatar-container">
+            <img id="avatar" src="https://avatars.githubusercontent.com/u/97835569?v=4" alt="Your Avatar">
+        </div>
+        <h2 id="title-leftbar">CTF Write-ups</h2>
+        <div id="file-list">Loading...</div>
+    </div>
+
+    <div id="content">
+        <div id="markdown-container">
+            <div id="file-content">Hê lô xin chào mọi người.</div>
+        </div>
+    </div>
+
+    <script>
+        const repoOwner = "nglong05"; 
+        const repoName = "CTF"; 
+        const branch = "main"; 
+        const baseRawUrl = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${branch}/`;
+        const baseApiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/`;
+
+        async function fetchFiles(path = "") {
+            try {
+                const response = await fetch(baseApiUrl + path);
+                if (!response.ok) throw new Error("Failed to fetch content");
+                return await response.json();
+            } catch (error) {
+                console.error("Error loading files:", error);
+                return [];
+            }
+        }
+
+        document.getElementById("title-leftbar").textContent = repoName;
+        async function loadSidebar() {
+            const fileList = document.getElementById("file-list");
+            fileList.innerHTML = "";
+            await loadDirectory("", fileList);
+        }
+
+        function removeMdExtension(filename) {
+            return filename.endsWith(".md") ? filename.slice(0, -3) : filename;
+        }
+        
+        async function loadDirectory(path, parentElement) {
+            const items = await fetchFiles(path);
+
+            for (const item of items) {
+                if (item.type === "dir") {
+                    const folderDiv = document.createElement("div");
+                    folderDiv.classList.add("folder");
+                    folderDiv.textContent = `${item.name}`;
+                    folderDiv.onclick = async () => {
+                        nestedContainer.style.display = nestedContainer.style.display === "none" ? "block" : "none";
+                        if (!nestedContainer.hasChildNodes()) {
+                            await loadDirectory(item.path, nestedContainer);
+                        }
+                    };
+
+                    const nestedContainer = document.createElement("div");
+                    nestedContainer.style.marginLeft = "15px";
+                    nestedContainer.style.display = "none";
+
+                    parentElement.appendChild(folderDiv);
+                    parentElement.appendChild(nestedContainer);
+                } else if (item.type === "file") {
+                    const link = document.createElement("a");
+                    link.href = "#";
+                    link.textContent = `⚬ ${removeMdExtension(item.name)}`; // Remove .md only
+                    link.style.marginLeft = "25px";
+                    link.onclick = () => loadFile(item.download_url, item.name, item.path);
+                    parentElement.appendChild(link);
+                }
+            }
+        }
+
+        async function loadFile(url, fileName, filePath) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Failed to fetch file");
+                let fileContent = await response.text();
+
+                //document.getElementById("page-title").textContent = fileName;
+
+                if (fileName.endsWith(".md")) {
+                    fileContent = fixImagePaths(fileContent, filePath);
+                    document.getElementById("file-content").innerHTML = marked.parse(fileContent);
+                } else {
+                    document.getElementById("file-content").innerHTML = `<pre><code>${escapeHTML(fileContent)}</code></pre>`;
+                }
+            } catch (error) {
+                document.getElementById("file-content").innerHTML = `<p style="color: red;">Error loading file: ${error.message}</p>`;
+            }
+        }
+
+        function fixImagePaths(content, filePath) {
+            const folderPath = filePath.substring(0, filePath.lastIndexOf("/") + 1);
+
+            return content.replace(/\!\[(.*?)\]\((.*?)\)/g, (match, alt, src) => {
+                if (!src.startsWith("http")) {
+                    const encodedPath = encodeURIComponent(folderPath + src).replace(/%2F/g, "/");
+                    return `![${alt}](${baseRawUrl}${encodedPath})`;
+                }
+                return match;
+            });
+        }
+
+        function escapeHTML(text) {
+            return text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Load sidebar navigation
+        loadSidebar();
+    </script>
+
+</body>
+</html>
