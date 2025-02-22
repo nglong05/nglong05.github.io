@@ -396,7 +396,7 @@
         
       <!-- Right Sidebar -->
       <div id="rightbar">
-         <p id="toc-list">Loading...</p>
+         <p id="toc-list"></p>
       </div>
       <script>
          const repoOwner = "nglong05"; 
@@ -408,15 +408,29 @@
          const baseApiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/`;
          
          async function fetchFiles(path = "") {
-             try {
-                 const response = await fetch(baseApiUrl + path, {headers: {"Authorization": `token ${atob(itrustyouguyssomuch + iamscareofautotokenscaningingithub)}`}});
-                 if (!response.ok) throw new Error("Failed to fetch content");
-                 return await response.json();
-             } catch (error) {
-                 console.error("Error loading files:", error);
-                 return [];
-             }
-         }
+            try {
+                const encodedPath = encodeURIComponent(path).replace(/%2F/g, "/"); // ✅ Correctly encode the path
+                console.log(`Fetching: ${baseApiUrl}${encodedPath}`);
+                
+                const response = await fetch(baseApiUrl + encodedPath, {
+                    headers: {
+                        "Authorization": `token ${atob(itrustyouguyssomuch + iamscareofautotokenscaningingithub)}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch content: ${response.status} ${response.statusText}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error("Error loading files:", error);
+                document.getElementById("file-content").innerHTML = 
+                    `<p style='color: red;'>Error fetching files: ${error.message}</p>`;
+                return [];
+            }
+        }
+
          
          document.getElementById("title-leftbar").textContent = repoName;
          async function loadSidebar() {
@@ -455,7 +469,7 @@
          
              for (const item of items) {
                  if (item.type === "dir") {
-                     if (item.name.toLowerCase() === "image" || item.name.toLowerCase() === "img") {
+                     if (item.name.toLowerCase() === "image" || item.name.toLowerCase() === "img" || item.name.toLowerCase() === "myenv") {
                          continue;
                      }
                      const folderDiv = document.createElement("div");
@@ -502,26 +516,38 @@
              }
          }
          async function loadFile(url, fileName, filePath) {
-             try {
-                 const response = await fetch(url);
-                 if (!response.ok) throw new Error("Failed to fetch file");
-                 let fileContent = await response.text();
-         
-                 updateBreadcrumb(filePath); // Update breadcrumb dynamically
-         
-                 if (fileName.endsWith(".md")) {
-                     fileContent = fixImagePaths(fileContent, filePath);
-                     document.getElementById("file-content").innerHTML = marked.parse(fileContent);
-                     generateTOC(); // ✅ Extract & display headings after rendering
-                     addCopyButtons();
-                 } else {
-                     document.getElementById("file-content").innerHTML = `<pre><code>${escapeHTML(fileContent)}</code></pre>`;
-                     addCopyButtons();
-                 }
-             } catch (error) {
-                 document.getElementById("file-content").innerHTML = `<p style="color: red;">Error loading file: ${error.message}</p>`;
-             }
-         }
+            try {
+                const encodedPath = encodeURIComponent(filePath).replace(/%2F/g, "/"); // ✅ Properly encode
+                const fixedUrl = `${baseRawUrl}${encodedPath}`;
+
+                console.log(`Loading file: ${filePath} from ${fixedUrl}`);
+
+                const response = await fetch(fixedUrl);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+                }
+
+                let fileContent = await response.text();
+                updateBreadcrumb(filePath);
+
+                if (fileName.endsWith(".md")) {
+                    fileContent = fixImagePaths(fileContent, filePath);
+                    document.getElementById("file-content").innerHTML = marked.parse(fileContent);
+                    generateTOC();
+                    addCopyButtons();
+                } else {
+                    document.getElementById("file-content").innerHTML = 
+                        `<pre><code>${escapeHTML(fileContent)}</code></pre>`;
+                    addCopyButtons();
+                }
+
+            } catch (error) {
+                console.error("Error loading file:", error);
+                document.getElementById("file-content").innerHTML = 
+                    `<p style="color: red;">Error loading file: ${error.message}</p>`;
+            }
+        }
+
          document.addEventListener("DOMContentLoaded", loadDefaultFile);
          function fixImagePaths(content, filePath) {
              const folderPath = filePath.substring(0, filePath.lastIndexOf("/") + 1);
