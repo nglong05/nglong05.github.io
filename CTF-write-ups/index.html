@@ -402,7 +402,7 @@
       </div>
       <script>
          const repoOwner = "nglong05"; 
-         const repoName = "CTF-Write-ups"; 
+         const repoName = "CTF-write-ups"; 
          const branch = "main"; 
          const itrustyouguyssomuch = "Z2hwXzJEdmJZTDFrSTNVMHB1cl";
          const iamscareofautotokenscaningingithub = "RyMnRqRUMxYUU3c3lwWjFNQVFmSg==";
@@ -490,7 +490,7 @@
          
                      parentElement.appendChild(folderDiv);
                      parentElement.appendChild(nestedContainer);
-                 } else if (item.type === "file") {
+                 } else if (item.type === "file" && item.name != "README.md") {
                      if (/\.(png|jpg|jpeg)$/i.test(item.name)) {
                          continue;
                      }
