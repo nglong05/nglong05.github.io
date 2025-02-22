@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>nglong05 | Repositories</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
@@ -123,7 +124,7 @@
             const content = document.getElementById("content");
             content.innerHTML = "";
             
-            const allowedRepos = ["CTF", "TryHackMe", "PortSwigger", "RootMe"];
+            const allowedRepos = ["CTF-Write-ups", "TryHackMe", "PortSwigger", "RootMe"];
             repos.forEach(repo => {
                 if (allowedRepos.includes(repo.name)) {
                     const box = document.createElement("div");
