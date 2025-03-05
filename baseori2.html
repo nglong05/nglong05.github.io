@@ -41,7 +41,7 @@
          .copy-btn { position: absolute; top: 7px; right: 7px; background: rgba(255, 255, 255, 0.2); border: none; color: white; font-size: 8px; padding: 5px 8px; border-radius: 3px; cursor: pointer; opacity: 0.4; transition: opacity 0.3s ease; }
          pre:hover .copy-btn { opacity: 1; }
          .copy-btn:active { background: rgba(255, 255, 255, 0.4); }
-         code { font-family: 'Droid Sans Mono'; color: #ffd085; background-color: #34302b; font-size: 14px;}
+         pre code { font-family: 'Droid Sans Mono', monospace; color: #ffd085; background-color: #34302b; font-size: 14px;}
          .hljs { background-color: #1a1b21; padding: 10px; border-radius: 5px; }
          #header { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.0)); display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; z-index: 200; }
          #breadcrumb-container { position: fixed; top: 0; left: 350px; right: 190px; height: 50px; background: rgba(31, 32, 40, 0.9); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 200; }
@@ -89,11 +89,17 @@
          <p id="toc-list"></p>
       </div>
       <script>
-         const repoOwner = "nglong05"; 
-         const repoName = "PortSwigger";
-         const branch = "main"; 
+         // Constants
+         const repoOwner = "nglong05";
+         const branch = "main";
          const itrustyouguyssomuch = "Z2hwXzJEdmJZTDFrSTNVMHB1cl";
          const iamscareofautotokenscaningingithub = "RyMnRqRUMxYUU3c3lwWjFNQVFmSg==";
+
+         // Extract repoName and path from URL
+         const pathParts = window.location.pathname.split('/').filter(part => part); // Remove empty parts
+         const repoName = pathParts[0] || "PortSwigger"; // Default to RootMe if no repo specified
+         const filePath = pathParts.slice(1).join('/') || ""; // Remaining path (e.g., Web/HCTF2025 or Web/HCTF2025/firstchall.md)
+
          const baseRawUrl = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${branch}/`;
          const baseApiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/`;
 
@@ -101,7 +107,7 @@
             try {
                const encodedPath = encodeURIComponent(path).replace(/%2F/g, "/");
                console.log(`Fetching: ${baseApiUrl}${encodedPath}`);
-               const response = await fetch(baseApiUrl + encodedPath, {
+               const response = await fetch(`${baseApiUrl}${encodedPath}`, {
                   headers: { "Authorization": `token ${atob(itrustyouguyssomuch + iamscareofautotokenscaningingithub)}` }
                });
                if (!response.ok) throw new Error(`Failed to fetch content: ${response.status} ${response.statusText}`);
@@ -123,12 +129,19 @@
 
          function updateBreadcrumb(path) {
             const breadcrumb = document.getElementById("breadcrumb");
-            if (!path) {
-               breadcrumb.innerHTML = `<a href="/">Home</a> > ${repoName}`;
-            } else {
-               const parts = path.split("/");
-               breadcrumb.innerHTML = `<a href="/">Home</a> > ${repoName} > `;
-               breadcrumb.innerHTML += parts.join(" > ");
+            const parts = path ? path.split("/") : [];
+            breadcrumb.innerHTML = `<a href="/">Home</a> > <a href="/${repoName}">${repoName}</a>`;
+            if (parts.length > 0) {
+               let cumulativePath = `/${repoName}`;
+               parts.forEach((part, index) => {
+                  cumulativePath += `/${part}`;
+                  breadcrumb.innerHTML += ` > `;
+                  if (index === parts.length - 1 && part.endsWith(".md")) {
+                     breadcrumb.innerHTML += part; // Last part (file) not linked
+                  } else {
+                     breadcrumb.innerHTML += `<a href="${cumulativePath}">${part}</a>`;
+                  }
+               });
             }
          }
 
@@ -146,12 +159,9 @@
                   'cs': 'csharp'
                };
                const hljsLang = languageMap[lang] || lang || 'plaintext';
-               console.log(`Highlighting code with lang: ${lang}, mapped to: ${hljsLang}`);
-               if (hljs.getLanguage(hljsLang)) {
-                  console.log(`Highlighting as ${hljsLang}`);
+               if (hljs.getLanguage(hljLang)) {
                   return hljs.highlight(code, { language: hljsLang }).value;
                } else {
-                  console.log(`Language ${hljsLang} not recognized, using auto`);
                   return hljs.highlightAuto(code).value;
                }
             }
@@ -187,76 +197,104 @@
                } else if (item.type === "file") {
                   if (/\.(png|jpg|jpeg)$/i.test(item.name)) continue;
                   const link = document.createElement("a");
-                  link.href = "#";
+                  link.href = `/${repoName}/${item.path}`;
                   link.textContent = `⚬ ${removeMdExtension(item.name)}`;
                   link.style.marginLeft = "25px";
-                  link.onclick = () => loadFile(item.download_url, item.name, item.path);
+                  link.onclick = (e) => {
+                     e.preventDefault();
+                     loadFile(item.download_url, item.name, item.path);
+                  };
                   parentElement.appendChild(link);
                }
             }
          }
 
          async function loadDefaultFile() {
-            try {       
-               const files = await fetchFiles();
-               const readmeFile = files.find(file => file.name.toLowerCase() === "readme.md");
-               if (readmeFile) {
-                  loadFile(readmeFile.download_url, readmeFile.name, readmeFile.path);
+            if (filePath) {
+               if (filePath.endsWith(".md")) {
+                  loadFile(`${baseRawUrl}${filePath}`, filePath.split("/").pop(), filePath);
                } else {
-                  document.getElementById("file-content").innerHTML = "<p style='color: red;'>README.md not found</p>";
+                  listDirectory(filePath);
                }
-            } catch (error) {
-               console.error("Error loading default file:", error);
+            } else {
+               try {
+                  const files = await fetchFiles();
+                  const readmeFile = files.find(file => file.name.toLowerCase() === "readme.md");
+                  if (readmeFile) {
+                     loadFile(readmeFile.download_url, readmeFile.name, readmeFile.path);
+                  } else {
+                     document.getElementById("file-content").innerHTML = "<p style='color: red;'>README.md not found</p>";
+                  }
+               } catch (error) {
+                  console.error("Error loading default file:", error);
+               }
             }
          }
 
          async function loadFile(url, fileName, filePath) {
             try {
-                const encodedPath = encodeURIComponent(filePath).replace(/%2F/g, "/");
-                const fixedUrl = `${baseRawUrl}${encodedPath}`;
-                console.log(`Loading file: ${filePath} from ${fixedUrl}`);
-                const response = await fetch(fixedUrl);
-                if (!response.ok) throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
-                let fileContent = await response.text();
-                updateBreadcrumb(filePath);
+               console.log(`Loading file: ${filePath} from ${url}`);
+               const response = await fetch(url);
+               if (!response.ok) throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+               let fileContent = await response.text();
+               updateBreadcrumb(filePath);
 
-                if (fileName.endsWith(".md")) {
-                    fileContent = fixImagePaths(fileContent, filePath);
-                    const parsedContent = marked.parse(fileContent);
-                    console.log("Parsed Markdown HTML:", parsedContent);
-                    document.getElementById("file-content").innerHTML = parsedContent;
-                    // Explicitly re-apply highlighting after DOM update
-                    document.querySelectorAll('pre code').forEach(block => {
-                        hljs.highlightElement(block);
-                    });
-                    generateTOC();
-                    addCopyButtons();
-                } else {
-                    const extension = fileName.split('.').pop().toLowerCase();
-                    const languageMap = {
-                        'py': 'python',
-                        'js': 'javascript',
-                        'ts': 'typescript',
-                        'html': 'xml',
-                        'css': 'css',
-                        'java': 'java',
-                        'c': 'c',
-                        'cpp': 'cpp',
-                        'cs': 'csharp'
-                    };
-                    const language = languageMap[extension] || 'plaintext';
-                    document.getElementById("file-content").innerHTML = 
-                        `<pre><code class="language-${language}">${escapeHTML(fileContent)}</code></pre>`;
-                    addCopyButtons();
-                    document.querySelectorAll('pre code').forEach(block => {
-                        hljs.highlightElement(block);
-                    });
-                }
+               if (fileName.endsWith(".md")) {
+                  fileContent = fixImagePaths(fileContent, filePath);
+                  const parsedContent = marked.parse(fileContent);
+                  console.log("Parsed Markdown HTML:", parsedContent);
+                  document.getElementById("file-content").innerHTML = parsedContent;
+                  document.querySelectorAll('pre code').forEach(block => {
+                     hljs.highlightElement(block);
+                  });
+                  generateTOC();
+                  addCopyButtons();
+               } else {
+                  const extension = fileName.split('.').pop().toLowerCase();
+                  const languageMap = {
+                     'py': 'python',
+                     'js': 'javascript',
+                     'ts': 'typescript',
+                     'html': 'xml',
+                     'css': 'css',
+                     'java': 'java',
+                     'c': 'c',
+                     'cpp': 'cpp',
+                     'cs': 'csharp'
+                  };
+                  const language = languageMap[extension] || 'plaintext';
+                  document.getElementById("file-content").innerHTML = 
+                     `<pre><code class="language-${language}">${escapeHTML(fileContent)}</code></pre>`;
+                  addCopyButtons();
+                  document.querySelectorAll('pre code').forEach(block => {
+                     hljs.highlightElement(block);
+                  });
+               }
             } catch (error) {
-                console.error("Error loading file:", error);
-                document.getElementById("file-content").innerHTML = `<p style="color: red;">Error loading file: ${error.message}</p>`;
+               console.error("Error loading file:", error);
+               document.getElementById("file-content").innerHTML = `<p style="color: red;">Error loading file: ${error.message}</p>`;
             }
+         }
+
+         async function listDirectory(path) {
+            try {
+               const items = await fetchFiles(path);
+               updateBreadcrumb(path);
+               const fileContent = document.getElementById("file-content");
+               fileContent.innerHTML = "<h2>Directory Contents</h2><ul>";
+               items.forEach(item => {
+                  if (item.type === "file" && item.name.endsWith(".md")) {
+                     fileContent.innerHTML += `<li><a href="/${repoName}/${item.path}">${item.name}</a></li>`;
+                  } else if (item.type === "dir") {
+                     fileContent.innerHTML += `<li><a href="/${repoName}/${item.path}">${item.name}/</a></li>`;
+                  }
+               });
+               fileContent.innerHTML += "</ul>";
+            } catch (error) {
+               console.error("Error listing directory:", error);
+               document.getElementById("file-content").innerHTML = `<p style="color: red;">Error listing directory: ${error.message}</p>`;
             }
+         }
 
          document.addEventListener("DOMContentLoaded", loadDefaultFile);
 
@@ -264,8 +302,8 @@
             const folderPath = filePath.substring(0, filePath.lastIndexOf("/") + 1);
             return content.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, src) => {
                if (!src.startsWith("http")) {
-                     const encodedPath = encodeURIComponent(folderPath + src).replace(/%2F/g, "/");
-                     return `![${alt}](${baseRawUrl}${encodedPath})`;
+                  const encodedPath = encodeURIComponent(folderPath + src).replace(/%2F/g, "/");
+                  return `![${alt}](${baseRawUrl}${encodedPath})`;
                }
                return match;
             });
