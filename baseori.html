@@ -90,7 +90,7 @@
       </div>
       <script>
          const repoOwner = "nglong05"; 
-         const repoName = "RootMe";
+         const repoName = "HackTheBox";
          const branch = "main"; 
          const itrustyouguyssomuch = "Z2hwXzJEdmJZTDFrSTNVMHB1cl";
          const iamscareofautotokenscaningingithub = "RyMnRqRUMxYUU3c3lwWjFNQVFmSg==";
@@ -121,15 +121,30 @@
             await loadDirectory("", fileList);
          }
 
+         function navigateTo(path) {
+            // Update the URL and load the corresponding directory
+            const encodedPath = encodeURIComponent(path);
+            history.pushState(null, "", `/${repoName}/${encodedPath}`);
+            loadDirectory(path, document.getElementById("file-list"));
+            updateBreadcrumb(path);
+         }
          function updateBreadcrumb(path) {
             const breadcrumb = document.getElementById("breadcrumb");
-            if (!path) {
-               breadcrumb.innerHTML = `<a href="/">Home</a> > ${repoName}`;
-            } else {
-               const parts = path.split("/");
-               breadcrumb.innerHTML = `<a href="/">Home</a> > ${repoName} > `;
-               breadcrumb.innerHTML += parts.join(" > ");
-            }
+            const parts = path ? path.split("/") : [];
+
+            let breadcrumbHTML = '<a href="/">Home</a> > ';
+            let accumulatedPath = "";
+
+            parts.forEach((part, index) => {
+               accumulatedPath += (accumulatedPath ? "/" : "") + part;
+               breadcrumbHTML += `<a href="#" onclick="navigateTo('${accumulatedPath}')">${part}</a>`;
+
+               if (index < parts.length - 1) {
+                     breadcrumbHTML += " > ";
+               }
+            });
+
+            breadcrumb.innerHTML = breadcrumbHTML;
          }
 
          marked.setOptions({ 
@@ -168,34 +183,48 @@
          }
 
          async function loadDirectory(path, parentElement) {
-            const items = await fetchFiles(path);
-            for (const item of items) {
-               if (item.type === "dir") {
+         const items = await fetchFiles(path);
+         parentElement.innerHTML = ""; // Clear current file list
+
+         for (const item of items) {
+            // Skip "README.md" files
+            if (item.name.toLowerCase() === "readme.md") continue;
+
+            if (item.type === "dir") {
+                  // Skip directories like "image" or "img" and "myenv"
                   if (item.name.toLowerCase() === "image" || item.name.toLowerCase() === "img" || item.name.toLowerCase() === "myenv") continue;
+
                   const folderDiv = document.createElement("div");
                   folderDiv.classList.add("folder");
                   folderDiv.textContent = `${item.name}`;
                   folderDiv.onclick = async () => {
-                     nestedContainer.style.display = nestedContainer.style.display === "none" ? "block" : "none";
-                     if (!nestedContainer.hasChildNodes()) await loadDirectory(item.path, nestedContainer);
+                     navigateTo(path + "/" + item.name);
                   };
-                  const nestedContainer = document.createElement("div");
-                  nestedContainer.style.marginLeft = "15px";
-                  nestedContainer.style.display = "none";
                   parentElement.appendChild(folderDiv);
-                  parentElement.appendChild(nestedContainer);
-               } else if (item.type === "file") {
+            } else if (item.type === "file") {
+                  // Skip image files (e.g., .png, .jpg)
                   if (/\.(png|jpg|jpeg)$/i.test(item.name)) continue;
+
                   const link = document.createElement("a");
                   link.href = "#";
                   link.textContent = `⚬ ${removeMdExtension(item.name)}`;
                   link.style.marginLeft = "25px";
                   link.onclick = () => loadFile(item.download_url, item.name, item.path);
                   parentElement.appendChild(link);
-               }
             }
          }
+      }
 
+
+      function loadPageFromUrl() {
+         const path = window.location.pathname.replace(`/${repoName}/`, "");
+         if (path) {
+            loadDirectory(path, document.getElementById("file-list"));
+            updateBreadcrumb(path);
+         } else {
+            loadDefaultFile();
+         }
+      }
          async function loadDefaultFile() {
             try {       
                const files = await fetchFiles();
@@ -311,7 +340,7 @@
                tocList.appendChild(link);
             });
          }
-
+         document.addEventListener("DOMContentLoaded", loadPageFromUrl);
          loadSidebar();
       </script>
    </body>

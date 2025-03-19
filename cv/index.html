@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Viewer</title>
+    <title>CV NguyenVanLong</title>
     <style>
         body, html {
             margin: 0;
@@ -17,41 +17,9 @@
             height: 100vh;
             border: none;
         }
-        #download-btn {
-            position: fixed;
-            top: 40px;
-            right: 20px;
-            padding: 10px 15px;
-            background: #06a5b2;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            z-index: 100;
-        }
-        #download-btn:hover {
-            background: #048b98;
-        }
     </style>
 </head>
 <body>
-
     <iframe id="pdf-viewer" src="NguyenVanLongCV.pdf"></iframe>
-    
-    <button id="download-btn" onclick="downloadPDF()">Download PDF</button>
-
-    <script>
-        function downloadPDF() {
-            const pdfUrl = "NguyenVanLongCV.pdf";  // Change this to your actual file URL
-            const link = document.createElement("a");
-            link.href = pdfUrl;
-            link.download = pdfUrl.split("/").pop(); // Gets the filename from the URL
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-    </script>
-
 </body>
 </html>
