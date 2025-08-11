@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pio Live2D – Diana demo</title>
+
+  <!-- CSS của Pio -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pio@latest/dist/pio.css">
+  <style>
+    .pio-container.left{ position:fixed; left:16px; bottom:0; z-index:9999; }
+  </style>
+</head>
+<body>
+  <div id="pio-container" class="pio-container left"></div>
+
+  <!-- JS của Pio (có fallback sang unpkg nếu jsDelivr lỗi) -->
+  <script src="https://cdn.jsdelivr.net/npm/pio@latest/dist/pio.min.js"
+          onerror="this.onerror=null;this.src='https://unpkg.com/pio@latest/dist/pio.min.js'"></script>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      new Pio({
+        container: document.getElementById('pio-container'),
+        // ⬇️ Model Diana (đổi path nếu 404)
+        model: [{ jsonPath: 'https://unpkg.com/pio-models@latest/Diana/model.json' }],
+        hidden: false,
+        mode: 'fixed',
+        draggable: true
+      });
+    });
+  </script>
+</body>
+</html>
